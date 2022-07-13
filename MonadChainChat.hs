@@ -29,16 +29,16 @@ makeMetahead = do
 
 makeMeta :: IO()
 makeMeta = do 
+	headinput <- readHeadFile
 	input <- readChatevent
 	chatEvent <- extractMeta input
-	headinput <- readHeadFile
 	check chatEvent headinput
 	
 check file1 file2
-	| file1 == file2 = writeMeta file2
+	| file1 == file2 = writeMeta
 	| otherwise = makeMetahead
 
-writeMeta file = do
+writeMeta = do
 	copyFile "metahead.txt" "meta.txt"
 
 -- extracts the metadata from the log
@@ -49,6 +49,7 @@ extractMeta input = do
 appendEvent :: IO()
 appendEvent = do 
 	appendFile "chatevent.txt" "\nnew appended stuff"
+	makeMetahead
 	
 readChatevent :: IO String
 readChatevent = do
