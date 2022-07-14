@@ -1,6 +1,7 @@
 module MonadChainChat where
 import System.Directory
-	
+import Control.Exception
+
 --main :: IO ()
 main = do 
 	putStrLn "This is a sample: "
@@ -66,3 +67,12 @@ readMetaFile = do
 	metaFile <- readFile "meta.txt"
 	return metaFile
 	
+getInput = do
+	input <- getLine
+	return input
+
+createIndex = do writeFile "index.txt" "0"
+
+getIndex = do
+	number <- readFile "index.txt"
+	return number
