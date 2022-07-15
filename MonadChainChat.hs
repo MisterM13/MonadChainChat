@@ -1,6 +1,6 @@
 module MonadChainChat where
 import System.Directory
-import Control.Exception
+
 
 --main :: IO ()
 main = do 
@@ -22,10 +22,12 @@ makeChatevent = do writeFile "chatevent.txt" "example Chatevent file"
 
 --makeMeta = do writeFile "meta.txt" "example Meta file"
 
+
 makeMetahead :: IO()
 makeMetahead = do
 	input <- readChatevent
 	chatEvent <- extractMeta input
+	putStrLn "making metahead..."
 	writeFile "metahead.txt" ("example Meta file\n" ++ chatEvent)
 
 makeMeta :: IO()
@@ -33,11 +35,15 @@ makeMeta = do
 	headinput <- readHeadFile
 	input <- readChatevent
 	chatEvent <- extractMeta input
-	check chatEvent headinput
+	check ("example Meta file\n" ++ chatEvent) headinput		
 	
 check file1 file2
-	| file1 == file2 = writeMeta
-	| otherwise = makeMetahead
+	| file1 == file2 = writeFile "meta.txt" file2
+	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
+
+-- makeLock = do 
+--	headinput <- readHeadFile
+--	writeFile "lock.txt" getHash headinput
 
 writeMeta = do
 	copyFile "metahead.txt" "meta.txt"
@@ -76,3 +82,4 @@ createIndex = do writeFile "index.txt" "0"
 getIndex = do
 	number <- readFile "index.txt"
 	return number
+	
