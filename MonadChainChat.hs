@@ -1,6 +1,7 @@
 module MonadChainChat where
 import System.Directory
-
+import System.IO
+import Data.Char
 
 --main :: IO ()
 main = do 
@@ -36,7 +37,8 @@ makeMeta = do
 	input <- readChatevent
 	chatEvent <- extractMeta input
 	check ("example Meta file\n" ++ chatEvent) headinput		
-	
+
+check :: [Char] -> [Char] -> IO ()
 check file1 file2
 	| file1 == file2 = writeFile "meta.txt" file2
 	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
@@ -45,8 +47,10 @@ check file1 file2
 --	headinput <- readHeadFile
 --	writeFile "lock.txt" getHash headinput
 
+writeMeta :: IO ()
 writeMeta = do
 	copyFile "metahead.txt" "meta.txt"
+	removeFile "metahead.txt"
 
 -- extracts the metadata from the log
 extractMeta :: Monad m => [Char] -> m [Char]
@@ -55,7 +59,8 @@ extractMeta input = do
 
 appendEvent :: IO()
 appendEvent = do 
-	appendFile "chatevent.txt" "\nnew appended stuff"
+	input <- getInput
+	appendFile "chatevent.txt" ("\n" ++ input)
 	makeMetahead
 	
 readChatevent :: IO String
@@ -73,13 +78,49 @@ readMetaFile = do
 	metaFile <- readFile "meta.txt"
 	return metaFile
 	
+getInput :: IO String	
 getInput = do
 	input <- getLine
 	return input
 
+createIndex :: IO ()
 createIndex = do writeFile "index.txt" "0"
 
+getIndex :: IO String
 getIndex = do
 	number <- readFile "index.txt"
 	return number
-	
+
+-- code used from https://stackoverflow.com/questions/31342012/read-and-writing-to-file-in-haskell , 18.7.22
+--				  https://stackoverflow.com/questions/20667478/haskell-string-int-type-conversion , 18.7.22
+incIndex :: IO ()
+incIndex = do 
+	handle <- openFile "index.txt" ReadWriteMode
+	num <- hGetContents handle
+	let ind = read num :: Integer
+	let inc = (ind+1)
+	writeFile "indexhead.txt" (show inc)
+	hClose handle
+	copyFile "indexhead.txt" "index.txt"
+	removeFile "indexhead.txt"
+	return()
+
+setIndex :: Show a => a -> IO ()
+setIndex num = do
+	writeFile "index.txt" (show num)
+
+
+--- File Architecture: ---
+
+-- Chatevent.txt: (this is the Append Only Log)
+-- Checksum + Signature + Time/Index. + ReceiverNr + Message
+
+-- Person.txt: (this are the AOL from the other messagers)
+
+-- pivKey.txt: My private key
+-- pubKey.txt: My public key
+-- personKey.txt: public key of other messagers
+
+-- index.txt: the current index of the messages in the Chatevent
+
+-- meta.txt: Messages in ordered by Index
