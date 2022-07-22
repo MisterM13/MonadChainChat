@@ -124,3 +124,5 @@ setIndex num = do
 -- index.txt: the current index of the messages in the Chatevent
 
 -- meta.txt: Messages in ordered by Index
+
+-- names.txt: Names of the other messangers
