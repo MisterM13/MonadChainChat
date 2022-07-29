@@ -2,6 +2,8 @@ module MonadChainChat where
 import System.Directory
 import System.IO
 import Data.Char
+import Control.Monad.Trans.Maybe
+-- import Crypto.ECC
 
 --main :: IO ()
 main = do 
@@ -60,7 +62,10 @@ extractMeta input = do
 appendEvent :: IO()
 appendEvent = do 
 	input <- getInput
-	appendFile "chatevent.txt" ("\n" ++ input)
+	index <- getIndex
+	-- TODO: ECC encrypted Hash
+	let text = ("\n" {- ++ hash -}  ++ index {- ++ otherindex -} ++ ";" input)
+	appendFile "chatevent.txt" 
 	makeMetahead
 	
 readChatevent :: IO String
@@ -109,6 +114,18 @@ setIndex :: Show a => a -> IO ()
 setIndex num = do
 	writeFile "index.txt" (show num)
 
+getNames :: IO ()
+getNames = do
+	exists <- doesFileExist "names.txt" 
+	if exists
+	then do 
+		names <- readFile "names.txt"
+		print ( "Here are the available chatnames:" ++ names )
+	else
+		print "You have no Chats jet, please import some first."
+
+--TODO: importName
+
 
 --- File Architecture: ---
 
@@ -120,6 +137,7 @@ setIndex num = do
 -- pivKey.txt: My private key
 -- pubKey.txt: My public key
 -- personKey.txt: public key of other messagers
+
 
 -- index.txt: the current index of the messages in the Chatevent
 
