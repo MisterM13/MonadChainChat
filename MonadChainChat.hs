@@ -64,8 +64,8 @@ appendEvent = do
 	input <- getInput
 	index <- getIndex
 	-- TODO: ECC encrypted Hash
-	let text = ("\n" {- ++ hash -}  ++ index {- ++ otherindex -} ++ ";" input)
-	appendFile "chatevent.txt" 
+	let text = ("\n" {- ++ hash -}  ++ index {- ++ otherindex -} ++ ";" ++ input)
+	appendFile "chatevent.txt" text
 	makeMetahead
 	
 readChatevent :: IO String
@@ -124,7 +124,15 @@ getNames = do
 	else
 		print "You have no Chats jet, please import some first."
 
---TODO: importName
+-- TODO: import and install Data.Strings (not recognized by Cabal & Stack?? )
+-- importName = do
+--	print "Please input the Name of the Chat, you have imported."
+--	nameraw <- getLine
+--	if strEndsWith ".txt" nameraw
+	
+--	let name = "\n" ++ 
+--	appendFile "names.txt" name
+
 
 
 --- File Architecture: ---
