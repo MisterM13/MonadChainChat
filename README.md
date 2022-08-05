@@ -35,5 +35,7 @@ First of all i need to find a method to read out all the logs, but haskel `readF
 readFile "*.txt"
 ```
 The solution i thought for this problem is writing a seperate _names.txt_ file, which includes all the chat names. Then i can read out this file and give the user the option which chat he wants to open.
-The second problem that comes up, is how to get a timestamp as I won't use a system time function. Hopefully the solution to this is relative nummerating: Every message has two numbers, the first is the number of the own numeration, and the second of the numeration of the other user, so we should get a relative time consistency.
+The second problem that comes up, is how to get a timestamp as I won't use a system time function. Hopefully the solution to this is relative nummerating: Every message has two numbers, the first is the number of the own numeration, and the second of the numeration of the other user, so we should get a relative time consistency. However i still have to plan how and which Blockevents get both time numbers and which not.
 
+## Problems with imports
+At a certain point I met the problem, that I need some special modules like `Data.Strings`. As I saw them at [hackage.haskell.org](https://hackage.haskell.org/package/strings-1.1/docs/Data-Strings.html) I first tried just to make `import Data.Strings` at my file, but the module was not known by the compiler, so I tried to install the module. I tried Cabal and Stack and both gave an error message that the file/folder is unknown. Maybe I have to import them by hand. But first I need some further research to resolve this. 
