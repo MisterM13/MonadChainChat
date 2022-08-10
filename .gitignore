@@ -4,3 +4,5 @@ meta.txt
 index.txt
 lock.txt
 names.txt
+Data/Strings.hi
+Data/Strings.o
