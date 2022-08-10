@@ -3,6 +3,8 @@ import System.Directory
 import System.IO
 import Data.Char
 import Control.Monad.Trans.Maybe
+import Data.Strings
+
 -- import Crypto.ECC
 
 --main :: IO ()
@@ -120,20 +122,29 @@ getNames = do
 	if exists
 	then do 
 		names <- readFile "names.txt"
-		print ( "Here are the available chatnames:" ++ names )
+		putStr ( "Here are the available chatnames:" ++ names ++ "\n" )
 	else
 		print "You have no Chats jet, please import some first."
 
--- TODO: import and install Data.Strings (not recognized by Cabal & Stack?? )
--- importName = do
---	print "Please input the Name of the Chat, you have imported."
---	nameraw <- getLine
---	if strEndsWith ".txt" nameraw
-	
---	let name = "\n" ++ 
---	appendFile "names.txt" name
 
+importName = do
+print "Please input the Name of the Chat, you have imported."
+nameraw <- getLine
+if (strEndsWith nameraw ".txt")
+then do
+	let file = nameraw
+	let name = "\n" ++ strReplace ".txt" "" nameraw 	
+	appendFile "names.txt" name
+else do
+	let file = nameraw ++ ".txt"
+	let name = "\n" ++ nameraw
+	appendFile "names.txt" name
 
+--importChatFile filepath = do
+--	if (fileExist filepath)
+--	then do
+--		let name = "\n" ++ strReplace ".txt" "" filepath
+		
 
 --- File Architecture: ---
 
