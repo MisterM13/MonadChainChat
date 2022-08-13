@@ -1,6 +1,7 @@
 module MonadChainChat where
 import System.Directory
 import System.IO
+import System.Posix.Files
 import Data.Char
 import Control.Monad.Trans.Maybe
 import Data.Strings
@@ -126,25 +127,28 @@ getNames = do
 	else
 		print "You have no Chats jet, please import some first."
 
-
+importName :: IO ()
 importName = do
-print "Please input the Name of the Chat, you have imported."
-nameraw <- getLine
-if (strEndsWith nameraw ".txt")
-then do
-	let file = nameraw
-	let name = "\n" ++ strReplace ".txt" "" nameraw 	
-	appendFile "names.txt" name
-else do
-	let file = nameraw ++ ".txt"
-	let name = "\n" ++ nameraw
-	appendFile "names.txt" name
+	print "Please input the Name of the Chat, you have imported."
+	nameraw <- getLine
+	if (strEndsWith nameraw ".txt")
+		then importChatFile nameraw
+		else importChatFile (nameraw ++ ".txt")
+	
+importChatFile :: FilePath -> IO ()
+importChatFile nameraw = do
+	let filepath = ("Chats/"++ nameraw)
+	exists <-  (fileExist filepath) -- not Uppercase sensitive
+	if exists
+	then do
+		let name = "\n" ++ strReplace ".txt" "" filepath
+		appendFile "names.txt" name
+	else do
+		putStrLn "No importfile for this Name found."
+		putStrLn "Make shure there is a File [Name].txt in the 'Chats' folder."
 
---importChatFile filepath = do
---	if (fileExist filepath)
---	then do
---		let name = "\n" ++ strReplace ".txt" "" filepath
-		
+
+
 
 --- File Architecture: ---
 
