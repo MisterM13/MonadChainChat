@@ -5,10 +5,9 @@ import System.Posix.Files
 import Data.Char
 import Control.Monad.Trans.Maybe
 import Data.Strings
+import Crypto.ECC
 
--- import Crypto.ECC
-
---main :: IO ()
+main :: IO String
 main = do 
 	putStrLn "This is a sample: "
 	putStrLn "generating Chatevent..."
@@ -48,9 +47,10 @@ check file1 file2
 	| file1 == file2 = writeFile "meta.txt" file2
 	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
 
--- makeLock = do 
---	headinput <- readHeadFile
---	writeFile "lock.txt" getHash headinput
+--createKeys = do
+--	let keyString = show (curveGenerateKeyPair)
+--	putStr keyString
+
 
 writeMeta :: IO ()
 writeMeta = do
