@@ -7,7 +7,7 @@ import Control.Monad.Trans.Maybe
 import Data.Strings
 import qualified Data.Text.Encoding as TE
 import Crypto.Hash.Algorithms
-import Crypto.PubKey.ECC.ECDSA (sign, verify)
+import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey)
 import Crypto.PubKey.ECC.Generate (generate)
 import Crypto.PubKey.ECC.Types (getCurveByName, CurveName(..))
 
@@ -64,6 +64,22 @@ createKeys = do
 		writeFile "ownPubKey.txt" (show pubKey)
 		print "Asymetric Keys successfully generated"
 
+loadKeys :: IO (PublicKey, PrivateKey)
+loadKeys = do
+	exists <-  (fileExist "PrivKey.txt")
+	if exists
+	then do
+		privKeytext <- readFile "PrivKey.txt"
+		pubKeytext <- readFile  "ownPubKey.txt"
+		let privKey = (read privKeytext)
+		let pubKey = (read pubKeytext)
+		-- pubKey :: Crypto.PubKey.ECC.ECDSA.PublicKey
+		-- privKey :: Crypto.PubKey.ECC.ECDSA.PrivateKey
+		return (pubKey ::Crypto.PubKey.ECC.ECDSA.PublicKey, privKey :: Crypto.PubKey.ECC.ECDSA.PrivateKey )
+	else do
+		createKeys
+		loadKeys
+		
 writeMeta :: IO ()
 writeMeta = do
 	copyFile "metahead.txt" "meta.txt"
