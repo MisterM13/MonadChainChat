@@ -5,6 +5,8 @@ import System.Posix.Files
 import Data.Char
 import Control.Monad.Trans.Maybe
 import Data.Strings
+import Data.ByteString (ByteString)
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import Crypto.Hash.Algorithms
 import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey)
@@ -31,6 +33,8 @@ makeChatevent = do writeFile "chatevent.txt" "example Chatevent file"
 
 --makeMeta = do writeFile "meta.txt" "example Meta file"
 
+packStr :: String -> ByteString
+packStr = TE.encodeUtf8.T.pack
 
 makeMetahead :: IO()
 makeMetahead = do
@@ -50,7 +54,8 @@ check :: [Char] -> [Char] -> IO ()
 check file1 file2
 	| file1 == file2 = writeFile "meta.txt" file2
 	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
-	
+
+-- Asymetric key Crypto with help from https://www.youtube.com/watch?v=wjyiOXRuUdo (14.9.2022)
 createKeys :: IO ()
 createKeys = do
 	exists <-  (fileExist "PrivKey.txt")
@@ -73,6 +78,7 @@ loadKeys = do
 		pubKeytext <- readFile  "ownPubKey.txt"
 		let privKey = (read privKeytext)
 		let pubKey = (read pubKeytext)
+		-- we need: 
 		-- pubKey :: Crypto.PubKey.ECC.ECDSA.PublicKey
 		-- privKey :: Crypto.PubKey.ECC.ECDSA.PrivateKey
 		return (pubKey ::Crypto.PubKey.ECC.ECDSA.PublicKey, privKey :: Crypto.PubKey.ECC.ECDSA.PrivateKey )
@@ -94,8 +100,12 @@ appendEvent :: IO()
 appendEvent = do 
 	input <- getInput
 	index <- getIndex
-	-- TODO: ECC encrypted Hash
-	let text = ("\n" {- ++ hash -}  ++ index {- ++ otherindex -} ++ ";" ++ input)
+	-- TODO: get data from previous Block
+	let preblock = packStr "data from previous block"
+	(pubKey,privKey) <- loadKeys
+	hash <- sign privKey SHA3_256 preblock
+	--TODO: maybe implement Data.Time.Clock.POSIX instead of index and otherindex
+	let text = ("\n"  ++ show hash   ++ index {- ++ otherindex -} ++ ";" ++ input)
 	appendFile "chatevent.txt" text
 	makeMetahead
 	
