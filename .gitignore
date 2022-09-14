@@ -6,3 +6,5 @@ lock.txt
 names.txt
 Data/Strings.hi
 Data/Strings.o
+PrivKey.txt
+ownPubKey.txt

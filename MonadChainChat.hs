@@ -5,7 +5,11 @@ import System.Posix.Files
 import Data.Char
 import Control.Monad.Trans.Maybe
 import Data.Strings
-import Crypto.ECC
+import qualified Data.Text.Encoding as TE
+import Crypto.Hash.Algorithms
+import Crypto.PubKey.ECC.ECDSA (sign, verify)
+import Crypto.PubKey.ECC.Generate (generate)
+import Crypto.PubKey.ECC.Types (getCurveByName, CurveName(..))
 
 main :: IO String
 main = do 
@@ -46,11 +50,19 @@ check :: [Char] -> [Char] -> IO ()
 check file1 file2
 	| file1 == file2 = writeFile "meta.txt" file2
 	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
-
---createKeys = do
---	let keyString = show (curveGenerateKeyPair)
---	putStr keyString
-
+	
+createKeys :: IO ()
+createKeys = do
+	exists <-  (fileExist "PrivKey.txt")
+	if exists
+	then do
+		print "You already created your keys"
+	else do
+		let secp256k1 = getCurveByName SEC_p256k1
+		(pubKey,privKey) <- generate secp256k1
+		writeFile "PrivKey.txt" (show privKey)
+		writeFile "ownPubKey.txt" (show pubKey)
+		print "Asymetric Keys successfully generated"
 
 writeMeta :: IO ()
 writeMeta = do
