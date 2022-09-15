@@ -43,4 +43,23 @@ At a certain point I met the problem, that I need some special modules like `Dat
 Because the Module was not within the normal Stack files, I couldn't just use `stack install`, so I imported the files manually by creating a directory _Data_ and putting the File _Strings.hs_ in it and it worked. I had also some Problems importing _Crypto.ECC_ (used for encrypting and hashing) , but then I realized that the package was named _Cryptonite-0.30_ instead of _Crypto_.
 
 ## Elliptic Curve Cryptography
-For the ECC i found the _Crytonite_ library, as already mentioned above. But the library didn't have examples and as I'm not very proficient on Elliptic Curve and reading the module descriptions, I had some hard time to find out how to use this module. Luckily i found a Youtube [Video](https://www.youtube.com/watch?v=jcd__aqidhc) about this module (they are likely rare). There was also an other very interesting [tutorial Video](https://www.youtube.com/watch?v=DrqORFeJlOI) i can adwise, but it was only about hashing, TOTP and HMac.
+For the ECC I found the _Crytonite_ library, as already mentioned above. But the library didn't have examples and as I'm not very proficient on Elliptic Curve and reading the module descriptions, I had some hard time to find out how to use this module. Luckily I found a Youtube [Video](https://www.youtube.com/watch?v=jcd__aqidhc) about this module (they are likely rare). There was also an other very interesting [tutorial Video](https://www.youtube.com/watch?v=DrqORFeJlOI) I can adwise, but it was only about hashing, TOTP and HMac.
+
+## Restructuring the Backgrid of the MonadChainChat
+
+As everything got a little bit messy with that lot of files, I tried to restructure the whole architecture. Making different Folders:
+
+Chats
+: is used to store the readable chat (also known as metadata)
+
+Chatlogs
+: is used to store the blockchain eventlogs with cryptological verification data
+
+Keystore
+: is used to store all the keys (own private and public key, and the public key of chat partners)
+
+Import
+: is used to easely import the files (eventlog and key)
+
+Export
+: is used to easely export the files (eventlog and key)

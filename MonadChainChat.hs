@@ -19,6 +19,8 @@ import Data.Int
 main :: IO String
 main = do 
 	putStrLn "This is a sample: "
+	createFolders
+	print "Folders successfully Built."
 	putStrLn "generating Chatevent..."
 	makeChatevent
 	putStrLn "appending to Chatevent..."
@@ -61,24 +63,25 @@ check file1 file2
 -- Asymetric key Crypto with help from https://www.youtube.com/watch?v=wjyiOXRuUdo (14.9.2022)
 createKeys :: IO ()
 createKeys = do
-	exists <-  (fileExist "PrivKey.txt")
+	createFolders
+	exists <-  (fileExist "Keystore/PrivKey.txt")
 	if exists
 	then do
 		print "You already created your keys"
 	else do
 		let secp256k1 = getCurveByName SEC_p256k1
 		(pubKey,privKey) <- generate secp256k1
-		writeFile "PrivKey.txt" (show privKey)
-		writeFile "ownPubKey.txt" (show pubKey)
+		writeFile "Keystore/PrivKey.txt" (show privKey)
+		writeFile "Keystore/ownPubKey.txt" (show pubKey)
 		print "Asymetric Keys successfully generated"
 
 loadKeys :: IO (PublicKey, PrivateKey)
 loadKeys = do
-	exists <-  (fileExist "PrivKey.txt")
+	exists <-  (fileExist "Keystore/PrivKey.txt")
 	if exists
 	then do
-		privKeytext <- readFile "PrivKey.txt"
-		pubKeytext <- readFile  "ownPubKey.txt"
+		privKeytext <- readFile "Keystore/PrivKey.txt"
+		pubKeytext <- readFile  "Keystore/ownPubKey.txt"
 		let privKey = (read privKeytext)
 		let pubKey = (read pubKeytext)
 		-- we need: 
@@ -188,6 +191,7 @@ importName = do
 	
 importChatFile :: FilePath -> IO ()
 importChatFile nameraw = do
+	createFolders
 	let filepath = ("Chats/"++ nameraw)
 	exists <-  (fileExist filepath) -- not Uppercase sensitive
 	if exists
@@ -198,23 +202,37 @@ importChatFile nameraw = do
 		putStrLn "No importfile for this Name found."
 		putStrLn "Make shure there is a File [Name].txt in the 'Chats' folder."
 
-
-
+createFolders :: IO ()
+createFolders = do
+	createDirectoryIfMissing False "Chats"
+	createDirectoryIfMissing False "Chatlogs"
+	createDirectoryIfMissing False "Keystore"
+	createDirectoryIfMissing False "Import"
+	createDirectoryIfMissing False "Export"
+	
 
 --- File Architecture: ---
 
+-- names.txt: Names of the other messangers
+-- MonadChainChat.hs
+
+-- Chatlogs >>
 -- Chatevent.txt: (this is the Append Only Log)
 -- Checksum + Signature + Time/Index. + ReceiverNr + Message
-
 -- Person.txt: (this are the AOL from the other messagers)
 
+-- Keystore >>
 -- pivKey.txt: My private key
 -- pubKey.txt: My public key
--- personKey.txt: public key of other messagers
+-- personKey.txt: Public key of other messagers
 
+-- Chats >>
+-- PersonChat.txt: Messages ordered by time
 
--- index.txt: the current index of the messages in the Chatevent
+-- Import >>
+-- Person.txt:		Append Only Log from Person
+-- personKey.txt	Public key from Person
 
--- meta.txt: Messages in ordered by Index
-
--- names.txt: Names of the other messangers
+-- Export >>
+-- MyName.txt: 	Append Only Log from me
+-- MyKey.txt: 	My public key	
