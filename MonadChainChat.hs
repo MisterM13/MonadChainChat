@@ -12,6 +12,9 @@ import Crypto.Hash.Algorithms
 import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey)
 import Crypto.PubKey.ECC.Generate (generate)
 import Crypto.PubKey.ECC.Types (getCurveByName, CurveName(..))
+import Data.Time
+import Data.Time.Clock.POSIX
+import Data.Int
 
 main :: IO String
 main = do 
@@ -96,16 +99,25 @@ extractMeta :: Monad m => [Char] -> m [Char]
 extractMeta input = do
 	return ("content of chatEvent:\n" ++ input)
 
+-- code used from https://hackage.haskell.org/package/time-1.13/docs/Data-Time-Clock-POSIX.html (15.9.22)
+nanosSinceEpoch :: UTCTime -> Int64
+nanosSinceEpoch =
+	floor . (1e9 *) . nominalDiffTimeToSeconds . utcTimeToPOSIXSeconds
+	
+getTime :: IO Int64	
+getTime = do
+	u <- getCurrentTime
+	return $ nanosSinceEpoch u
+
 appendEvent :: IO()
 appendEvent = do 
 	input <- getInput
-	index <- getIndex
+	time <- getTime
 	-- TODO: get data from previous Block
 	let preblock = packStr "data from previous block"
 	(pubKey,privKey) <- loadKeys
 	hash <- sign privKey SHA3_256 preblock
-	--TODO: maybe implement Data.Time.Clock.POSIX instead of index and otherindex
-	let text = ("\n"  ++ show hash   ++ index {- ++ otherindex -} ++ ";" ++ input)
+	let text = ("\n"  ++ show hash   ++ show time ++ ";" ++ input)
 	appendFile "chatevent.txt" text
 	makeMetahead
 	
@@ -129,31 +141,32 @@ getInput = do
 	input <- getLine
 	return input
 
-createIndex :: IO ()
-createIndex = do writeFile "index.txt" "0"
-
-getIndex :: IO String
-getIndex = do
-	number <- readFile "index.txt"
-	return number
+-- Not used anymore:
+-- createIndex :: IO ()
+-- createIndex = do writeFile "index.txt" "0"
+-- 
+-- getIndex :: IO String
+-- getIndex = do
+-- 	number <- readFile "index.txt"
+-- 	return number
 
 -- code used from https://stackoverflow.com/questions/31342012/read-and-writing-to-file-in-haskell , 18.7.22
 --				  https://stackoverflow.com/questions/20667478/haskell-string-int-type-conversion , 18.7.22
-incIndex :: IO ()
-incIndex = do 
-	handle <- openFile "index.txt" ReadWriteMode
-	num <- hGetContents handle
-	let ind = read num :: Integer
-	let inc = (ind+1)
-	writeFile "indexhead.txt" (show inc)
-	hClose handle
-	copyFile "indexhead.txt" "index.txt"
-	removeFile "indexhead.txt"
-	return()
+--incIndex :: IO ()
+--incIndex = do 
+--	handle <- openFile "index.txt" ReadWriteMode
+--	num <- hGetContents handle
+--	let ind = read num :: Integer
+--	let inc = (ind+1)
+--	writeFile "indexhead.txt" (show inc)
+--	hClose handle
+--	copyFile "indexhead.txt" "index.txt"
+--	removeFile "indexhead.txt"
+--	return()
 
-setIndex :: Show a => a -> IO ()
-setIndex num = do
-	writeFile "index.txt" (show num)
+--setIndex :: Show a => a -> IO ()
+--setIndex num = do
+--	writeFile "index.txt" (show num)
 
 getNames :: IO ()
 getNames = do
