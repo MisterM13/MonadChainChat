@@ -8,6 +8,7 @@ import Data.Strings
 import Data.ByteString (ByteString)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import qualified Data.ByteString.Char8 as BS
 import Crypto.Hash.Algorithms
 import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey)
 import Crypto.PubKey.ECC.Generate (generate)
@@ -16,44 +17,88 @@ import Data.Time
 import Data.Time.Clock.POSIX
 import Data.Int
 
+
+
+
 main :: IO String
 main = do 
 	putStrLn "This is a sample: "
 	createFolders
 	print "Folders successfully Built."
+	createKeys
 	putStrLn "generating Chatevent..."
 	makeChatevent
 	putStrLn "appending to Chatevent..."
-	appendEvent
+	appendEvent "Max"
 	putStrLn "generating Metahead file..."
-	makeMetahead
-	putStrLn "prooving and generating Meta file..."
-	makeMeta
-	putStrLn "reading Chatevent..."
+--	makeMetahead "Max"
+--	putStrLn "prooving and generating Meta file..."
+--	makeMeta "Max"
+--	putStrLn "reading Chatevent..."
 	readChatevent
 
 -- code used from https://www.youtube.com/watch?v=X8XHXhSvfrY (12.7.2022)
 makeChatevent :: IO()
-makeChatevent = do writeFile "chatevent.txt" "example Chatevent file"
+makeChatevent = do 
+	createFolders
+	(pubKey,privKey) <- loadKeys
+	writeFile "Chatlogs/chatevent.txt" ("New Chat Event" ++ show pubKey)
 
---makeMeta = do writeFile "meta.txt" "example Meta file"
 
 packStr :: String -> ByteString
 packStr = TE.encodeUtf8.T.pack
 
-makeMetahead :: IO()
-makeMetahead = do
-	input <- readChatevent
-	chatEvent <- extractMeta input
-	putStrLn "making metahead..."
-	writeFile "metahead.txt" ("example Meta file\n" ++ chatEvent)
+--makeMetahead :: IO()
+-- makeMetahead chatname = do
+-- 	createFolders
+-- 	input <- readChatevent
+-- 	chatEvent <- extractMeta input
+-- 	print ("making metahead from Chat: " ++ chatname)
+-- 	writeFile ("Chats/"++chatname++"-head.txt") ("example Meta file\n" ++ chatEvent)
+-- 
+-- --makeMeta :: IO()
+-- makeMeta chatname = do 
+-- 	headinput <- readHeadFile chatname
+-- 	input <- readChatevent
+-- 	chatEvent <- extractMeta input
+-- 	check ("example Meta file\n" ++ chatEvent) headinput		
+-- 
 
-makeMeta :: IO()
-makeMeta = do 
-	headinput <- readHeadFile
-	input <- readChatevent
-	chatEvent <- extractMeta input
-	check ("example Meta file\n" ++ chatEvent) headinput		
+makeMetahead chatname = do
+	createFolders	
+	ownChatlog <- readChatevent
+	otherChatlog <- readFile ("Chatlogs/"++chatname++".txt")
+-- TODO: Implement function verificateChatlog
+--	verificateChatlog ownChatlog  ("Keys/ownPubKey.txt")
+--	verificateChatlog otherChatlog ("Keys/"++chatname++"PubKey.txt")
+-- TODO: Implement function extractMeta
+--	ownBlocks <- extractMeta chatname ownChatlog
+--	otherBlocks <- extractMeta chatname otherChatlog
+--	let blocks = ownBlocks + otherBlocks
+--	sortedData <- sort blocks
+
+	print(ownChatlog)
+	
+
+copyMeta chatname = do
+ 	copyFile (chatname++"-head.txt") (chatname++".txt")
+ 	removeFile (chatname++"-head.txt")
+
+-- TODO: implement extractMeta, which takes the meta data and filters it on chat
+-- extracts the metadata from the log
+--extractMeta :: Monad m => [Char] -> m [Char]
+--extractMeta input = do
+--	return ("content of chatEvent:\n" ++ input)
+	
+--readHeadFile :: IO String
+readHeadFile chatevent = do
+	headFile <- readFile "Chats/metahead.txt"
+	return headFile
+	
+--readMetaFile :: IO String
+readMetaFile chatname = do
+	metaFile <- readFile "Chats/meta.txt"
+	return metaFile
 
 check :: [Char] -> [Char] -> IO ()
 check file1 file2
@@ -92,16 +137,6 @@ loadKeys = do
 		createKeys
 		loadKeys
 		
-writeMeta :: IO ()
-writeMeta = do
-	copyFile "metahead.txt" "meta.txt"
-	removeFile "metahead.txt"
-
--- extracts the metadata from the log
-extractMeta :: Monad m => [Char] -> m [Char]
-extractMeta input = do
-	return ("content of chatEvent:\n" ++ input)
-
 -- code used from https://hackage.haskell.org/package/time-1.13/docs/Data-Time-Clock-POSIX.html (15.9.22)
 nanosSinceEpoch :: UTCTime -> Int64
 nanosSinceEpoch =
@@ -112,32 +147,22 @@ getTime = do
 	u <- getCurrentTime
 	return $ nanosSinceEpoch u
 
-appendEvent :: IO()
-appendEvent = do 
+appendEvent :: [Char] -> IO ()
+appendEvent chatname = do 
 	input <- getInput
 	time <- getTime
-	-- TODO: get data from previous Block
-	let preblock = packStr "data from previous block"
+	-- code used from https://stackoverflow.com/questions/41656678/haskell-read-last-line-with-a-lazy-mmap (15.9.22)
+	preblock <- ((last . lines) <$> readFile "Chatlogs/chatevent.txt")
 	(pubKey,privKey) <- loadKeys
-	hash <- sign privKey SHA3_256 preblock
-	let text = ("\n"  ++ show hash   ++ show time ++ ";" ++ input)
-	appendFile "chatevent.txt" text
-	makeMetahead
+	hash <- sign privKey SHA3_256 (packStr preblock)
+	let text = ("\n"  ++ show hash ++ ";" ++ chatname ++ ";" ++ show time ++ ";" ++ input)
+	appendFile "Chatlogs/chatevent.txt" text
+--	makeMetahead chatname
 	
 readChatevent :: IO String
 readChatevent = do
-	chatEvent <- readFile "chatevent.txt" 
+	chatEvent <- readFile "Chatlogs/chatevent.txt" 
 	return chatEvent
-		
-readHeadFile :: IO String
-readHeadFile = do
-	headFile <- readFile "metahead.txt"
-	return headFile
-	
-readMetaFile :: IO String
-readMetaFile = do
-	metaFile <- readFile "meta.txt"
-	return metaFile
 	
 getInput :: IO String	
 getInput = do
@@ -192,7 +217,7 @@ importName = do
 importChatFile :: FilePath -> IO ()
 importChatFile nameraw = do
 	createFolders
-	let filepath = ("Chats/"++ nameraw)
+	let filepath = ("Import/"++ nameraw)
 	exists <-  (fileExist filepath) -- not Uppercase sensitive
 	if exists
 	then do
@@ -201,6 +226,15 @@ importChatFile nameraw = do
 	else do
 		putStrLn "No importfile for this Name found."
 		putStrLn "Make shure there is a File [Name].txt in the 'Chats' folder."
+
+exportChatfile = do
+	createFolders
+	print "Please input your Name:\n"
+	name <- getInput
+	copyFile "Chatlogs/chatevent.txt" ("Export/"++name++".txt")
+	copyFile "Keystore/ownPubKey.txt" ("Export/"++name++"PubKey.txt")
+	print "Files successfully exported, please look in your 'Export' Folder."
+
 
 createFolders :: IO ()
 createFolders = do
