@@ -41,8 +41,14 @@ main = do
 makeChatevent :: IO()
 makeChatevent = do 
 	createFolders
-	(pubKey,privKey) <- loadKeys
-	writeFile "Chatlogs/chatevent.txt" ("New Chat Event" ++ show pubKey)
+	exists <- fileExist "Chatlogs/chatevent.txt"
+	if exists
+	then do
+		print "The Chatevent Log already exists."
+	else do
+		(pubKey,privKey) <- loadKeys
+		writeFile "Chatlogs/chatevent.txt" ("New Chat Event" ++ show pubKey)
+		print "Chatevent Log successfully created."
 
 
 packStr :: String -> ByteString
@@ -76,10 +82,16 @@ makeMetahead chatname = do
 --	otherBlocks <- extractMeta chatname otherChatlog
 --	let blocks = ownBlocks + otherBlocks
 --	sortedData <- sort blocks
-
 	print(ownChatlog)
+
+--verificateChatlog chatlog pubKey = do
+--	blocks <- readFile chatlog
+--	fmap verificateBlock pubKey blocks
+	
+-- verificateBlock pubKey blocks = do
 	
 
+copyMeta :: [Char] -> IO ()
 copyMeta chatname = do
  	copyFile (chatname++"-head.txt") (chatname++".txt")
  	removeFile (chatname++"-head.txt")
@@ -89,21 +101,40 @@ copyMeta chatname = do
 --extractMeta :: Monad m => [Char] -> m [Char]
 --extractMeta input = do
 --	return ("content of chatEvent:\n" ++ input)
+
+--extractMeta chatname chatlog = do
+--	related <- fmap isRelated chatlog chatname
+--	let relatedBlocks = filter related
+--	return relatedBlocks
+		
+
+getBlockTime block = do
+	[sig,name,time,msg] <- extractBlock block
+	return time
+
+--isRelated :: MonadFail m => ByteString -> ByteString -> m Bool
+isRelated block chatname = do
+	[sig,name,time,msg] <- extractBlock block
+	return (name == chatname)
+
+extractBlock :: Monad m => ByteString -> m [ByteString]
+extractBlock block = do
+	return (BS.split ';' block)
 	
---readHeadFile :: IO String
-readHeadFile chatevent = do
-	headFile <- readFile "Chats/metahead.txt"
+readHeadFile :: [Char] -> IO String
+readHeadFile chatname = do
+	headFile <- readFile ("Chats/"++ chatname ++ "-head.txt")
 	return headFile
 	
---readMetaFile :: IO String
-readMetaFile chatname = do
-	metaFile <- readFile "Chats/meta.txt"
+readChat :: [Char] -> IO String
+readChat chatname = do
+	metaFile <- readFile ("Chats/"++chatname++".txt")
 	return metaFile
 
-check :: [Char] -> [Char] -> IO ()
-check file1 file2
-	| file1 == file2 = writeFile "meta.txt" file2
-	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
+--check :: [Char] -> [Char] -> IO ()
+--check file1 file2
+--	| file1 == file2 = writeFile "meta.txt" file2
+--	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
 
 -- Asymetric key Crypto with help from https://www.youtube.com/watch?v=wjyiOXRuUdo (14.9.2022)
 createKeys :: IO ()
@@ -198,7 +229,7 @@ getInput = do
 
 getNames :: IO ()
 getNames = do
-	exists <- doesFileExist "names.txt" 
+	exists <- fileExist "names.txt" 
 	if exists
 	then do 
 		names <- readFile "names.txt"
@@ -218,15 +249,21 @@ importChatFile :: FilePath -> IO ()
 importChatFile nameraw = do
 	createFolders
 	let filepath = ("Import/"++ nameraw)
+	let name = "\n" ++ strReplace ".txt" "" filepath
 	exists <-  (fileExist filepath) -- not Uppercase sensitive
 	if exists
 	then do
-		let name = "\n" ++ strReplace ".txt" "" filepath
 		appendFile "names.txt" name
+		copyFile filepath ("Chatlogs/"++name++".txt")
+		copyFile ("Import/"++name++"PubKey.txt") ("Keystore/"++name++"PubKey.txt")
+		print ("Successfully imported Chat:" ++ name)
+		removeFile filepath
+		removeFile ("Import/"++name++"PubKey.txt")
 	else do
 		putStrLn "No importfile for this Name found."
-		putStrLn "Make shure there is a File [Name].txt in the 'Chats' folder."
+		putStrLn "Make shure there is a File [Name].txt in the 'Import' folder."
 
+exportChatfile :: IO ()
 exportChatfile = do
 	createFolders
 	print "Please input your Name:\n"

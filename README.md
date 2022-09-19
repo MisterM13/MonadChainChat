@@ -1,4 +1,4 @@
-﻿
+ 
 
 
 > Written with [StackEdit](https://stackedit.io/) by [Matthias Müller](mailto:matthias01.mueller@stud.unibas.ch).
@@ -63,3 +63,6 @@ Import
 
 Export
 : is used to easely export the files (eventlog and key)
+
+I also made a new concept of the `makeMeta` method. How it should work at the end: 
+![schematic](schematic_makeMeta.png)
