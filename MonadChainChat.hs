@@ -35,6 +35,8 @@ main = do
 --	putStrLn "prooving and generating Meta file..."
 --	makeMeta "Max"
 --	putStrLn "reading Chatevent..."
+	print "testing the last Block for name Max..."
+	testBlocks
 	readChatevent
 
 -- code used from https://www.youtube.com/watch?v=X8XHXhSvfrY (12.7.2022)
@@ -72,13 +74,13 @@ packStr = TE.encodeUtf8.T.pack
 
 makeMetahead chatname = do
 	createFolders	
-	ownChatlog <- readChatevent
-	otherChatlog <- readFile ("Chatlogs/"++chatname++".txt")
+	ownChatlog <- extractFile "Chatlogs/chatevent.txt"
+	otherChatlog <- extractFile ("Chatlogs/"++chatname++".txt")
 -- TODO: Implement function verificateChatlog
 --	verificateChatlog ownChatlog  ("Keys/ownPubKey.txt")
 --	verificateChatlog otherChatlog ("Keys/"++chatname++"PubKey.txt")
--- TODO: Implement function extractMeta
---	ownBlocks <- extractMeta chatname ownChatlog
+-- TODO: Implement time Sorting function
+	let ownBlocks = getBlocklistRelated ownChatlog (packStr chatname)
 --	otherBlocks <- extractMeta chatname otherChatlog
 --	let blocks = ownBlocks + otherBlocks
 --	sortedData <- sort blocks
@@ -96,23 +98,35 @@ copyMeta chatname = do
  	copyFile (chatname++"-head.txt") (chatname++".txt")
  	removeFile (chatname++"-head.txt")
 
--- TODO: implement extractMeta, which takes the meta data and filters it on chat
--- extracts the metadata from the log
---extractMeta :: Monad m => [Char] -> m [Char]
---extractMeta input = do
---	return ("content of chatEvent:\n" ++ input)
 
---extractMeta chatname chatlog = do
---	related <- fmap isRelated chatlog chatname
---	let relatedBlocks = filter related
---	return relatedBlocks
-		
+testBlocks = do
+	blocks <- extractFile "Chatlogs/chatevent.txt"
+	let chatname = packStr "Max"
+	print chatname
+	let relatedBlocks = getBlocklistRelated blocks chatname
+	print relatedBlocks
+	let chatname = packStr "Fritz"
+	print chatname
+	let relatedBlocks = getBlocklistRelated blocks chatname
+	print relatedBlocks
 
+getBlocklistRelated :: [ByteString] -> ByteString -> [ByteString]
+getBlocklistRelated chatevent chatname = [x | x <- chatevent, y <- isRelated x chatname, y]
+
+-- code used from lecture "Funktoren, Applikative Funktoren"
+lift2 :: Monad m => (t1 -> t2 -> b) -> m t1 -> m t2 -> m b
+lift2 f x y = do
+	a <- x
+	b <- y
+	return (f a b)
+	
+	
+getBlockTime :: MonadFail m => ByteString -> m ByteString
 getBlockTime block = do
 	[sig,name,time,msg] <- extractBlock block
 	return time
 
---isRelated :: MonadFail m => ByteString -> ByteString -> m Bool
+isRelated :: MonadFail m => ByteString -> ByteString -> m Bool
 isRelated block chatname = do
 	[sig,name,time,msg] <- extractBlock block
 	return (name == chatname)
@@ -120,6 +134,17 @@ isRelated block chatname = do
 extractBlock :: Monad m => ByteString -> m [ByteString]
 extractBlock block = do
 	return (BS.split ';' block)
+
+extractFile :: FilePath -> IO [ByteString]
+extractFile path = do
+	exists <-  fileExist path
+	if exists
+	then do
+		file <- readFile path
+		return  (BS.split '\n' (packStr file))
+	else do
+		print ("this File doesn't exist: "++path)
+		return [(packStr "")]
 	
 readHeadFile :: [Char] -> IO String
 readHeadFile chatname = do
