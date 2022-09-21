@@ -73,16 +73,17 @@ makeMetahead chatname yourname = do
 	createFolders	
 	ownChatlog <- extractFile "Chatlogs/chatevent.txt"
 	otherChatlog <- extractFile ("Chatlogs/"++chatname++".txt")
--- TODO: find problem in verifyLog -> empty value/list ?
---	v1 <- verifyLog ownChatlog  "own"
---	v2 <- verifyLog otherChatlog chatname
---	print v1
---	print v2 
+	print "verifying Logs:"
+	v1 <- verifyLog ownChatlog  "own"
+	v2 <- verifyLog otherChatlog chatname
+	print ("Your Chatlog verification: ", v1)
+	print (chatname ++ "Chatlog verification: " ,v2) 
 -- TODO: Implement time Sorting function
+	print "extracting Data"
 	let ownBlocks = getBlocklistRelated ownChatlog (packStr chatname)
 	let otherBlocks = getBlocklistRelated otherChatlog (packStr yourname)
 	let blocks = ownBlocks ++ otherBlocks
-	let blockData = getBlockData (head blocks)
+	let blockData = makeMetaList blocks
 --	sortedData <- sort blocks
 	print(blockData)
 
@@ -90,19 +91,25 @@ makeMetahead chatname yourname = do
 --	blocks <- readFile chatlog
 --	verificateBlock pubKey blocks
 
-verifyLog :: [ByteString] -> [Char] -> IO Bool
+--verifyLog :: [ByteString] -> [Char] -> IO Bool
 verifyLog chatlog pubKey = do
-	let preblock = head chatlog
-	let afterblock = head (tail chatlog)
-	print afterblock
-	signatur <- (getBlockSig afterblock)
-	let sig = (read (show signatur)) ::Crypto.PubKey.ECC.ECDSA.Signature
-	key <- (loadKey pubKey) 
-	let verifyhead = (verify SHA3_256 key sig preblock)
-	verifytail <- (verifyLog (tail chatlog) pubKey)
-	return (verifyhead && verifytail)
-	
--- verificateBlock pubKey blocks = do
+	if length chatlog <= 1
+	then do 
+		return True
+	else do
+		let preblock = head chatlog
+		let afterblock = head (tail chatlog)
+		-- print afterblock
+		let signatur = (getBlockSig afterblock)
+		-- print signatur
+		let cropSig = strReplace "\"" "" signatur
+		let sig  = (read cropSig)::Crypto.PubKey.ECC.ECDSA.Signature
+		-- print sig
+		key <- (loadKey pubKey) 
+		let verifyhead = (verify SHA3_256 key sig preblock)
+		-- print verifyhead
+		verifytail <- (verifyLog (tail chatlog) pubKey)
+		return (verifyhead && verifytail)
 	
 
 copyMeta :: [Char] -> IO ()
@@ -122,11 +129,21 @@ testBlocks = do
 	let relatedBlocks = getBlocklistRelated blocks chatname
 	print relatedBlocks
 
+makeMetaList :: [ByteString] -> [[(ByteString, [Char], [Char])]]
+makeMetaList blocklist = do
+	let blocklisthead = getBlockData (head blocklist)
+	if length blocklist > 1
+	then do
+		let blocklisttail = makeMetaList (tail blocklist)
+		return blocklisthead ++ blocklisttail
+	else
+		return blocklisthead
+		
 getBlocklistRelated :: [ByteString] -> ByteString -> [ByteString]
 getBlocklistRelated chatevent chatname = [x | x <- chatevent, y <- isRelated x chatname, y]
 
 getBlockData :: ByteString -> [(ByteString, [Char], [Char])]
-getBlockData blocks = [(time, ("to: "++ show name),("msg: "++ show msg))| time <- getBlockTime blocks, name <- getBlockName blocks, msg <- getBlockMessage blocks]
+getBlockData block = [(time, ("to: "++ show name),("msg: "++ show msg))| time <- getBlockTime block, name <- getBlockName block, msg <- getBlockMessage block]
 
 -- code used from lecture "Funktoren, Applikative Funktoren"
 lift2 :: Monad m => (t1 -> t2 -> b) -> m t1 -> m t2 -> m b
@@ -136,11 +153,12 @@ lift2 f x y = do
 	return (f a b)
 
 --getBlockSig :: (Read (m Signature), MonadFail m) => ByteString -> m Signature
+--getBlockSig :: MonadFail m => ByteString -> m ByteString
 getBlockSig block = do
 	[sig,name,time,msg] <- extractBlock block
-	return sig
---	signatur <- read (show sig)
---	return (signatur ::Crypto.PubKey.ECC.ECDSA.Signature)
+--	return sig 
+	signatur <- (show sig)
+	return (signatur)
 
 getBlockName :: MonadFail m => ByteString -> m ByteString
 getBlockName block = do
