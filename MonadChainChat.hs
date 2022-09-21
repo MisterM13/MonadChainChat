@@ -10,7 +10,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.ByteString.Char8 as BS
 import Crypto.Hash.Algorithms
-import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey)
+import Crypto.PubKey.ECC.ECDSA (sign, verify, PublicKey, PrivateKey, Signature)
 import Crypto.PubKey.ECC.Generate (generate)
 import Crypto.PubKey.ECC.Types (getCurveByName, CurveName(..))
 import Data.Time
@@ -20,7 +20,7 @@ import Data.Int
 
 
 
-main :: IO String
+
 main = do 
 	putStrLn "This is a sample: "
 	createFolders
@@ -31,13 +31,9 @@ main = do
 	putStrLn "appending to Chatevent..."
 	appendEvent "Max"
 	putStrLn "generating Metahead file..."
---	makeMetahead "Max"
+	makeMetahead "Max" "Matthias"
 --	putStrLn "prooving and generating Meta file..."
 --	makeMeta "Max"
---	putStrLn "reading Chatevent..."
-	print "testing the last Block for name Max..."
-	testBlocks
-	readChatevent
 
 -- code used from https://www.youtube.com/watch?v=X8XHXhSvfrY (12.7.2022)
 makeChatevent :: IO()
@@ -72,23 +68,39 @@ packStr = TE.encodeUtf8.T.pack
 -- 	check ("example Meta file\n" ++ chatEvent) headinput		
 -- 
 
-makeMetahead chatname = do
+makeMetahead :: [Char] -> [Char] -> IO ()
+makeMetahead chatname yourname = do
 	createFolders	
 	ownChatlog <- extractFile "Chatlogs/chatevent.txt"
 	otherChatlog <- extractFile ("Chatlogs/"++chatname++".txt")
--- TODO: Implement function verificateChatlog
---	verificateChatlog ownChatlog  ("Keys/ownPubKey.txt")
---	verificateChatlog otherChatlog ("Keys/"++chatname++"PubKey.txt")
+-- TODO: find problem in verifyLog -> empty value/list ?
+--	v1 <- verifyLog ownChatlog  "own"
+--	v2 <- verifyLog otherChatlog chatname
+--	print v1
+--	print v2 
 -- TODO: Implement time Sorting function
 	let ownBlocks = getBlocklistRelated ownChatlog (packStr chatname)
---	otherBlocks <- extractMeta chatname otherChatlog
---	let blocks = ownBlocks + otherBlocks
+	let otherBlocks = getBlocklistRelated otherChatlog (packStr yourname)
+	let blocks = ownBlocks ++ otherBlocks
+	let blockData = getBlockData (head blocks)
 --	sortedData <- sort blocks
-	print(ownChatlog)
+	print(blockData)
 
 --verificateChatlog chatlog pubKey = do
 --	blocks <- readFile chatlog
---	fmap verificateBlock pubKey blocks
+--	verificateBlock pubKey blocks
+
+verifyLog :: [ByteString] -> [Char] -> IO Bool
+verifyLog chatlog pubKey = do
+	let preblock = head chatlog
+	let afterblock = head (tail chatlog)
+	print afterblock
+	signatur <- (getBlockSig afterblock)
+	let sig = (read (show signatur)) ::Crypto.PubKey.ECC.ECDSA.Signature
+	key <- (loadKey pubKey) 
+	let verifyhead = (verify SHA3_256 key sig preblock)
+	verifytail <- (verifyLog (tail chatlog) pubKey)
+	return (verifyhead && verifytail)
 	
 -- verificateBlock pubKey blocks = do
 	
@@ -113,14 +125,33 @@ testBlocks = do
 getBlocklistRelated :: [ByteString] -> ByteString -> [ByteString]
 getBlocklistRelated chatevent chatname = [x | x <- chatevent, y <- isRelated x chatname, y]
 
+getBlockData :: ByteString -> [(ByteString, [Char], [Char])]
+getBlockData blocks = [(time, ("to: "++ show name),("msg: "++ show msg))| time <- getBlockTime blocks, name <- getBlockName blocks, msg <- getBlockMessage blocks]
+
 -- code used from lecture "Funktoren, Applikative Funktoren"
 lift2 :: Monad m => (t1 -> t2 -> b) -> m t1 -> m t2 -> m b
 lift2 f x y = do
 	a <- x
 	b <- y
 	return (f a b)
+
+--getBlockSig :: (Read (m Signature), MonadFail m) => ByteString -> m Signature
+getBlockSig block = do
+	[sig,name,time,msg] <- extractBlock block
+	return sig
+--	signatur <- read (show sig)
+--	return (signatur ::Crypto.PubKey.ECC.ECDSA.Signature)
+
+getBlockName :: MonadFail m => ByteString -> m ByteString
+getBlockName block = do
+	[sig,name,time,msg] <- extractBlock block
+	return name
 	
-	
+getBlockMessage :: MonadFail m => ByteString -> m ByteString	
+getBlockMessage block = do	
+	[sig,name,time,msg] <- extractBlock block
+	return msg
+		
 getBlockTime :: MonadFail m => ByteString -> m ByteString
 getBlockTime block = do
 	[sig,name,time,msg] <- extractBlock block
@@ -193,6 +224,13 @@ loadKeys = do
 		createKeys
 		loadKeys
 		
+loadKey :: [Char] -> IO PublicKey
+loadKey name = do
+	pubKeytext <- readFile  ("Keystore/"++name++"PubKey.txt")
+	let pubKey = (read pubKeytext)
+	return (pubKey ::Crypto.PubKey.ECC.ECDSA.PublicKey)
+	
+
 -- code used from https://hackage.haskell.org/package/time-1.13/docs/Data-Time-Clock-POSIX.html (15.9.22)
 nanosSinceEpoch :: UTCTime -> Int64
 nanosSinceEpoch =
@@ -267,14 +305,14 @@ importName = do
 	print "Please input the Name of the Chat, you have imported."
 	nameraw <- getLine
 	if (strEndsWith nameraw ".txt")
-		then importChatFile nameraw
-		else importChatFile (nameraw ++ ".txt")
+		then importChatfile nameraw
+		else importChatfile (nameraw ++ ".txt")
 	
-importChatFile :: FilePath -> IO ()
-importChatFile nameraw = do
+importChatfile :: String -> IO ()
+importChatfile name = do
 	createFolders
-	let filepath = ("Import/"++ nameraw)
-	let name = "\n" ++ strReplace ".txt" "" filepath
+	let filepath = ("Import/"++ name ++".txt")
+	--let name = "\n" ++ strReplace ".txt" "" filepath
 	exists <-  (fileExist filepath) -- not Uppercase sensitive
 	if exists
 	then do
