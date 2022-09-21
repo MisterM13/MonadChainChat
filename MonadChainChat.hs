@@ -52,22 +52,6 @@ makeChatevent = do
 packStr :: String -> ByteString
 packStr = TE.encodeUtf8.T.pack
 
---makeMetahead :: IO()
--- makeMetahead chatname = do
--- 	createFolders
--- 	input <- readChatevent
--- 	chatEvent <- extractMeta input
--- 	print ("making metahead from Chat: " ++ chatname)
--- 	writeFile ("Chats/"++chatname++"-head.txt") ("example Meta file\n" ++ chatEvent)
--- 
--- --makeMeta :: IO()
--- makeMeta chatname = do 
--- 	headinput <- readHeadFile chatname
--- 	input <- readChatevent
--- 	chatEvent <- extractMeta input
--- 	check ("example Meta file\n" ++ chatEvent) headinput		
--- 
-
 makeMetahead :: [Char] -> [Char] -> IO ()
 makeMetahead chatname yourname = do
 	createFolders	
@@ -78,20 +62,70 @@ makeMetahead chatname yourname = do
 	v2 <- verifyLog otherChatlog chatname
 	print ("Your Chatlog verification: ", v1)
 	print (chatname ++ "Chatlog verification: " ,v2) 
--- TODO: Implement time Sorting function
-	print "extracting Data"
+	print "extracting Data..."
 	let ownBlocks = getBlocklistRelated ownChatlog (packStr chatname)
 	let otherBlocks = getBlocklistRelated otherChatlog (packStr yourname)
 	let blocks = ownBlocks ++ otherBlocks
 	let blockData = makeMetaList blocks
---	sortedData <- sort blocks
-	print(blockData)
+--	let sortedData = sort blocks
+	--print(sortedData)
+	writeMetahead chatname blockData
+	copyMeta chatname
 
---verificateChatlog chatlog pubKey = do
---	blocks <- readFile chatlog
---	verificateBlock pubKey blocks
+-- sort :: [ByteString] -> [ByteString]
+-- sort blocks = do 
+-- 	sorted <- isSortedlow blocks
+-- 	if sorted 
+-- 	then do
+-- 		return blocks
+-- 	else do
+-- 		timehead <-  getBlockTime (head blocks)
+-- 		let timeheadInt = read (show timehead) ::Int
+-- 		timetail <- getBlockTime (head (tail blocks)) 
+-- 		let timetailInt = read (show timetail) ::Int
+-- 		first <- (head blocks)
+-- 		let second = (head (tail blocks))
+-- 		let third = (tail (tail blocks))
+-- 		if timehead <= timetail
+-- 		then do
+-- 				sortedtail <- sort (tail blocks)
+-- 				return ([first] : sortedtail)
+-- 		else do
+-- 				return second : sort (first : third)
+	
+-- code used from exercises of the Paradigm lecture
+isSortedlow :: MonadFail m => [ByteString] -> m Bool
+isSortedlow blocks = do 
+	timehead <-  getBlockTime (head blocks)
+	let timeheadInt = read (show timehead) ::Int
+	timetail <- getBlockTime (head (tail blocks)) 
+	let timetailInt = read (show timetail) ::Int
+	if length blocks > 1
+	then do
+		tailSorted <- isSortedlow (tail blocks)
+		return (timeheadInt <= timetailInt  && tailSorted)
+	else do
+		return True
+	
 
---verifyLog :: [ByteString] -> [Char] -> IO Bool
+writeMetahead:: Show a => [Char] -> [[(a, [Char], [Char])]] -> IO ()
+writeMetahead chatname blockData = do
+	datablock <- (blockDataToString (head blockData))
+	writeFile ("Chats/"++chatname++"-head.txt") datablock
+	appendMetahead chatname (tail blockData)
+
+appendMetahead:: Show a => [Char] -> [[(a, [Char], [Char])]] -> IO ()
+appendMetahead chatname blockData = do
+	if length blockData > 1
+	then do
+		datablock <- (blockDataToString (head blockData))
+		appendFile ("Chats/"++chatname++"-head.txt") ("\n"++ datablock)
+		appendMetahead chatname (tail blockData)
+	else do 
+		datablock <- (blockDataToString (head blockData))
+		appendFile ("Chats/"++chatname++"-head.txt") ("\n"++ datablock)
+	
+verifyLog :: [ByteString] -> [Char] -> IO Bool
 verifyLog chatlog pubKey = do
 	if length chatlog <= 1
 	then do 
@@ -114,10 +148,16 @@ verifyLog chatlog pubKey = do
 
 copyMeta :: [Char] -> IO ()
 copyMeta chatname = do
- 	copyFile (chatname++"-head.txt") (chatname++".txt")
- 	removeFile (chatname++"-head.txt")
+ 	copyFile ("Chats/"++chatname++"-head.txt") ("Chats/"++chatname++".txt")
+	correctCopy <- check ("Chats/"++chatname++"-head.txt") ("Chats/"++chatname++".txt")
+	if correctCopy
+	then do
+		print ("Copying '"++chatname++"-head.txt' to '" ++chatname++".txt' was successfull.")
+		removeFile ("Chats/"++chatname++"-head.txt")
+	else do
+		print "Error: Meta-head file could not be copied."
 
-
+testBlocks :: IO ()
 testBlocks = do
 	blocks <- extractFile "Chatlogs/chatevent.txt"
 	let chatname = packStr "Max"
@@ -145,6 +185,12 @@ getBlocklistRelated chatevent chatname = [x | x <- chatevent, y <- isRelated x c
 getBlockData :: ByteString -> [(ByteString, [Char], [Char])]
 getBlockData block = [(time, ("to: "++ show name),("msg: "++ show msg))| time <- getBlockTime block, name <- getBlockName block, msg <- getBlockMessage block]
 
+blockDataToString :: (Monad m, Show a) => [(a, [Char], [Char])] -> m [Char]
+blockDataToString block = do
+	let [(time, name, msg)] = block
+	let strTime = show time
+	return (strTime++"\t\t" ++ name++"\t\t"++msg)
+
 -- code used from lecture "Funktoren, Applikative Funktoren"
 lift2 :: Monad m => (t1 -> t2 -> b) -> m t1 -> m t2 -> m b
 lift2 f x y = do
@@ -152,8 +198,7 @@ lift2 f x y = do
 	b <- y
 	return (f a b)
 
---getBlockSig :: (Read (m Signature), MonadFail m) => ByteString -> m Signature
---getBlockSig :: MonadFail m => ByteString -> m ByteString
+getBlockSig :: ByteString -> [Char]
 getBlockSig block = do
 	[sig,name,time,msg] <- extractBlock block
 --	return sig 
@@ -205,11 +250,12 @@ readChat chatname = do
 	metaFile <- readFile ("Chats/"++chatname++".txt")
 	return metaFile
 
---check :: [Char] -> [Char] -> IO ()
---check file1 file2
---	| file1 == file2 = writeFile "meta.txt" file2
---	| otherwise = putStrLn "metahead file is not congruent, please create it again with makeMetahead"	-- we can't overwrite the own, already open headfile, so we have to run it manual...					
-
+check :: FilePath -> FilePath -> IO Bool
+check file1 file2 = do
+	f1 <- readFile file1
+	f2 <- readFile file2
+	return (f1 == f2)
+	
 -- Asymetric key Crypto with help from https://www.youtube.com/watch?v=wjyiOXRuUdo (14.9.2022)
 createKeys :: IO ()
 createKeys = do
