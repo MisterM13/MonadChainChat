@@ -79,8 +79,7 @@ makeMetahead chatname yourname = do
 	print "sorting Data..."
 	let sortedData = sort blocks
 	print "sorted Data: "
-	-- TODO: make sorting Fast again!
-	--print (sortedData)
+	print (sortedData)
 	print "extracting Metadata..."
 	let blockData = makeMetaList sortedData
 	print "writing Metahead"
@@ -123,8 +122,10 @@ makeMetahead chatname yourname = do
 --		return blocks
 
 sort [] = []
-sort (x:xs) = sort [a|a <- xs, b <- fmap getBlockTime xs, b2 <- b, c <- getBlockTime x, b2 <= c] ++ [x] ++ sort [d|d <-xs, b <- fmap getBlockTime xs, b2 <- b, c <- getBlockTime x, c < b2]
+sort (x:xs) = sort [a|a <- xs, b <- getBlockTime (head xs),  c <- getBlockTime x, (getInt b) <= (getInt c)] ++ [x] ++ sort [d|d <-xs, b <- getBlockTime (head xs), c <- getBlockTime x, (getInt c) < (getInt b)]
 
+getInt str = read (strReplace "\"" "" (show str)) :: Integer
+	
 --switch :: MonadFail m => ByteString -> ByteString -> m (ByteString, ByteString)
 --switch b1 b2 = do
 --	val1 <- getBlockTime b1
