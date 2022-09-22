@@ -1,0 +1,11 @@
+Demo ablauf
+
+createKeys						ordner und Schlüsselpaare werden generiert
+makeChatevent					eigener Chateventlog wird erstellt, Inhalt: eine Start message und PublicKey
+appendEvent "Max"				wir schreiben Max eine Nachricht
+appendEvent "Fritz"				wir schreiben Fritz eine Nachricht
+appendEvent "Max"				wir werden ungeduldig und schreiben Max eine zweite Nachricht
+appendEvent "Matthias"			wir spielen Max der zurückschreibt
+exportChatfile -> Max			wir exportieren das File als Max da wir Max imitieren wollen
+importChatfile "Max"			wir importieren den (imitierten) Eventlog von Max
+makeMetahead "Max" "Matthias"	wir erstellen den Chat

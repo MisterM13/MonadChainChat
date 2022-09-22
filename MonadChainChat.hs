@@ -29,9 +29,10 @@ main = do
 	putStrLn "generating Chatevent..."
 	makeChatevent
 	putStrLn "appending to Chatevent..."
+	putStrLn "writing to Max: "
 	appendEvent "Max"
-	putStrLn "generating Metahead file..."
-	makeMetahead "Max" "Matthias"
+--	putStrLn "generating Metahead file..."
+--	makeMetahead "Max" "Matthias"
 --	putStrLn "prooving and generating Meta file..."
 --	makeMeta "Max"
 
@@ -67,31 +68,55 @@ makeMetahead chatname yourname = do
 	let otherBlocks = getBlocklistRelated otherChatlog (packStr yourname)
 	let blocks = ownBlocks ++ otherBlocks
 	let blockData = makeMetaList blocks
---	let sortedData = sort blocks
+	--let sortedData = sort blocks
 	--print(sortedData)
 	writeMetahead chatname blockData
 	copyMeta chatname
 
--- sort :: [ByteString] -> [ByteString]
--- sort blocks = do 
+--sort :: [ByteString] -> [ByteString]
+--sort blocks = do 
+--	sorted <- isSortedlow blocks
+--	if sorted 
+--	then do
+--		let [result] = blocks
+--		return result
+--	else do
+--		let first <- (head blocks)
+--		let second <- (head (tail blocks))
+--		let third <- (tail (tail blocks))
+--		timehead <-  getBlockTime first
+--		let timeheadInt = read (show timehead) ::Int
+--		timetail <- getBlockTime second 
+--		let timetailInt = read (show timetail) ::Int
+--		if timeheadInt <= timetailInt
+--		then do
+--			let sortedtail = sort (tail blocks)
+--			return (first : sortedtail)
+--		else do
+--			firstthird <- sort (first : third)
+--			return (second : firstthird)
+
+-- sort blocks = do
 -- 	sorted <- isSortedlow blocks
--- 	if sorted 
+-- 	if not sorted 
 -- 	then do
+-- 		let (lower, upper) = switch (head blocks) (head (tail blocks))
+-- 		return lower : upper : sort (tail blocks)
+-- 	else
 -- 		return blocks
--- 	else do
--- 		timehead <-  getBlockTime (head blocks)
--- 		let timeheadInt = read (show timehead) ::Int
--- 		timetail <- getBlockTime (head (tail blocks)) 
--- 		let timetailInt = read (show timetail) ::Int
--- 		first <- (head blocks)
--- 		let second = (head (tail blocks))
--- 		let third = (tail (tail blocks))
--- 		if timehead <= timetail
--- 		then do
--- 				sortedtail <- sort (tail blocks)
--- 				return ([first] : sortedtail)
--- 		else do
--- 				return second : sort (first : third)
+
+switch :: MonadFail m => ByteString -> ByteString -> m (ByteString, ByteString)
+switch b1 b2 = do
+	val1 <- getBlockTime b1
+	let tval1 =  read (show val1) ::Int
+	val2 <- getBlockTime b2
+	let tval2 =  read (show val2) ::Int
+	if tval1 < tval2
+	then do
+		return (val1,val2)
+	else do
+		return (val2,val1)
+
 	
 -- code used from exercises of the Paradigm lecture
 isSortedlow :: MonadFail m => [ByteString] -> m Bool
