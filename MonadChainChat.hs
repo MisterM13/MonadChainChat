@@ -31,7 +31,16 @@ main = do
 	putStrLn "appending to Chatevent..."
 	putStrLn "writing to Max: "
 	appendEvent "Max"
---	putStrLn "generating Metahead file..."
+	putStrLn "writing to Fritz: "
+	appendEvent "Fritz"
+	putStrLn "writing to Matthias: "
+	appendEvent "Matthias"
+	putStrLn "writing to Max: "
+	appendEvent "Max"
+	putStrLn "writing to Matthias: "
+	appendEvent "Matthias"
+	putStrLn "generating Metahead file..."
+	exportChatfile
 --	makeMetahead "Max" "Matthias"
 --	putStrLn "prooving and generating Meta file..."
 --	makeMeta "Max"
@@ -67,9 +76,14 @@ makeMetahead chatname yourname = do
 	let ownBlocks = getBlocklistRelated ownChatlog (packStr chatname)
 	let otherBlocks = getBlocklistRelated otherChatlog (packStr yourname)
 	let blocks = ownBlocks ++ otherBlocks
-	let blockData = makeMetaList blocks
-	--let sortedData = sort blocks
-	--print(sortedData)
+	print "sorting Data..."
+	let sortedData = sort blocks
+	print "sorted Data: "
+	-- TODO: make sorting Fast again!
+	--print (sortedData)
+	print "extracting Metadata..."
+	let blockData = makeMetaList sortedData
+	print "writing Metahead"
 	writeMetahead chatname blockData
 	copyMeta chatname
 
@@ -96,41 +110,47 @@ makeMetahead chatname yourname = do
 --			firstthird <- sort (first : third)
 --			return (second : firstthird)
 
--- sort blocks = do
--- 	sorted <- isSortedlow blocks
--- 	if not sorted 
--- 	then do
--- 		let (lower, upper) = switch (head blocks) (head (tail blocks))
--- 		return lower : upper : sort (tail blocks)
--- 	else
--- 		return blocks
+--sort blocks = do
+--	sorted <- isSortedlow blocks
+--	if length blocks > 1 && not sorted
+--	then do
+--		let bhead = (head blocks)
+--		let bhtail = (head (tail blocks))
+--		let btail = (tail blocks)
+--		let (lower, upper) = switch bhead bhtail
+--		return (lower : upper ++ sort btail)
+--	else do
+--		return blocks
 
-switch :: MonadFail m => ByteString -> ByteString -> m (ByteString, ByteString)
-switch b1 b2 = do
-	val1 <- getBlockTime b1
-	let tval1 =  read (show val1) ::Int
-	val2 <- getBlockTime b2
-	let tval2 =  read (show val2) ::Int
-	if tval1 < tval2
-	then do
-		return (val1,val2)
-	else do
-		return (val2,val1)
+sort [] = []
+sort (x:xs) = sort [a|a <- xs, b <- fmap getBlockTime xs, b2 <- b, c <- getBlockTime x, b2 <= c] ++ [x] ++ sort [d|d <-xs, b <- fmap getBlockTime xs, b2 <- b, c <- getBlockTime x, c < b2]
 
-	
--- code used from exercises of the Paradigm lecture
-isSortedlow :: MonadFail m => [ByteString] -> m Bool
-isSortedlow blocks = do 
-	timehead <-  getBlockTime (head blocks)
-	let timeheadInt = read (show timehead) ::Int
-	timetail <- getBlockTime (head (tail blocks)) 
-	let timetailInt = read (show timetail) ::Int
-	if length blocks > 1
-	then do
-		tailSorted <- isSortedlow (tail blocks)
-		return (timeheadInt <= timetailInt  && tailSorted)
-	else do
-		return True
+--switch :: MonadFail m => ByteString -> ByteString -> m (ByteString, ByteString)
+--switch b1 b2 = do
+--	val1 <- getBlockTime b1
+--	let tval1 =  read (show val1) ::Int
+--	val2 <- getBlockTime b2
+--	let tval2 =  read (show val2) ::Int
+--	if tval1 < tval2
+--	then do
+--		return (b1,b2)
+--	else do
+--		return (b2,b1)
+--
+--	
+---- code used from exercises of the Paradigm lecture
+--isSortedlow :: MonadFail m => [ByteString] -> m Bool
+--isSortedlow blocks = do 
+--	timehead <-  getBlockTime (head blocks)
+--	let timeheadInt = read (show timehead) ::Int
+--	timetail <- getBlockTime (head (tail blocks)) 
+--	let timetailInt = read (show timetail) ::Int
+--	if length blocks > 1
+--	then do
+--		tailSorted <- isSortedlow (tail blocks)
+--		return (timeheadInt <= timetailInt  && tailSorted)
+--	else do
+--		return True
 	
 
 writeMetahead:: Show a => [Char] -> [[(a, [Char], [Char])]] -> IO ()
@@ -244,6 +264,14 @@ getBlockTime :: MonadFail m => ByteString -> m ByteString
 getBlockTime block = do
 	[sig,name,time,msg] <- extractBlock block
 	return time
+
+--getBlockTimeInt :: MonadFail m => ByteString -> m Int
+--getBlockTimeInt block = do
+--	[sig,name,time,msg] <- extractBlock block
+--	let strTime = (show time)
+--	print(strTime)
+--	let intTime =  read (time) ::Int
+--	return intTime
 
 isRelated :: MonadFail m => ByteString -> ByteString -> m Bool
 isRelated block chatname = do
